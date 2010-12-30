@@ -27,6 +27,8 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -48,21 +50,16 @@ public class ValidateAndPushServlet extends HttpServlet {
 
     private static final String ERROR_HEADER = "X-Error-Message";
 
-    private static String appID = "";
-    private static long userID;
-    private static String instanceID = "";
+    private static HashMap<Long, JiveAppPair> ids = new HashMap<Long, JiveAppPair>();
 
-
-    public static void setAppID(String appID) {
-        ValidateAndPushServlet.appID = appID;
+    public static void add(Long userId, String jiveId, String appId) {
+        ValidateAndPushServlet.ids.put(userId, new JiveAppPair(jiveId, appId));
+        logger.info(String.format("Install app registered: user id: %d, Jive Id: %s, App Id: %s", userId, jiveId, appId));
     }
 
-    public static void setUserID(long userID) {
-        ValidateAndPushServlet.userID = userID;
-    }
-
-    public static void setInstanceID(String instanceID) {
-        ValidateAndPushServlet.instanceID = instanceID;
+    public static void remove(Long userId, String jiveId, String appId) {
+        ValidateAndPushServlet.ids.remove(userId);
+        logger.info(String.format("Uninstall app registered: user id: %d, Jive Id: %s, App Id: %s", userId, jiveId, appId));
     }
 
     @Override
@@ -73,23 +70,34 @@ public class ValidateAndPushServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         // verify that the appID, userID and instanceID are set
-        long uid = userID;
-        if (uid < 1) {
-            String jiveUserString = req.getParameter("jiveuser");
-            if(jiveUserString == null || jiveUserString.equals("-1"))
-            {
-                resp.setHeader(ERROR_HEADER, "No app is registered with the demo server. Please follow the steps outlined" +
-                        " in the tutorial to have an app register with this demo server. If you have restarted this server" +
-                        " note that you will have to create and install a new app into the sandbox instance for app" +
-                        " registration to occur");
-                resp.setStatus(400);
-                return;
+        long uid = 0;
+        String jiveId = "", appId = "";
+        if(req.getParameter("uid") != null) uid = Long.valueOf(req.getParameter("uid"));
+        if(uid > 0) {
+            JiveAppPair jiveAppPair = ids.get(uid);
+            if(jiveAppPair != null) {
+                jiveId = jiveAppPair.getJiveId();
+                appId = jiveAppPair.getAppId();
             }
-            else
-            {
-                uid = Integer.valueOf(jiveUserString);
-            }
+            else uid = 0;
         }
+        else if(ids.keySet().size() > 0) {
+            Map.Entry<Long, JiveAppPair> firstOne = ids.entrySet().iterator().next();
+            uid = firstOne.getKey();
+            jiveId = firstOne.getValue().getJiveId();
+            appId = firstOne.getValue().getAppId();
+        }
+
+        if (uid == 0) {
+            resp.setHeader(ERROR_HEADER, "No app is registered with the demo server. Please follow the steps outlined" +
+                    " in the tutorial to have an app register with this demo server. If you have restarted this server" +
+                    " note that you will have to create and install a new app into the sandbox instance for app" +
+                    " registration to occur");
+            resp.setStatus(400);
+            return;
+        }
+
+        logger.info(String.format("Posting to: user id: %d, Jive Id: %s, App Id: %s", uid, jiveId, appId));
         // retrieve post form fields. We're just going to assume that the fields have been
         // null tested already by the javascript in the form
         String consumerKey = req.getParameter("consumerKey");
@@ -107,7 +115,7 @@ public class ValidateAndPushServlet extends HttpServlet {
         }
 
         // execute the push to the jive gateway server
-        Resp r = doPush(req, consumerKey, consumerSecret, targetType, json, uid);
+        Resp r = doPush(req, consumerKey, consumerSecret, targetType, json, uid, jiveId, appId);
 
         // handle the response
         if (!StringUtils.isBlank(r.getErrorMessage())) {
@@ -158,17 +166,17 @@ public class ValidateAndPushServlet extends HttpServlet {
      * @param json the json to push
      * @return a {@link Resp} object
      */
-    private Resp doPush(HttpServletRequest req, String consumerKey, String consumerSecret, int targetType, String json, long uid) {
+    private Resp doPush(HttpServletRequest req, String consumerKey, String consumerSecret, int targetType, String json, long uid, String jiveId, String appId) {
         try {
             // create the request
-            HttpPost post = new HttpPost(getPostUrl(targetType, uid));
+            HttpPost post = new HttpPost(getPostUrl(targetType, uid, jiveId, appId));
             StringEntity entity = new StringEntity(json, "UTF-8");
             entity.setContentType("application/json");
             post.setEntity(entity);
 
             // The jive gateway *requires* the use of this header to denote the app UUID
             // the post is associated with
-            post.setHeader("X-Jive-App-Id", appID);
+            post.setHeader("X-Jive-App-Id", appId);
 
             // setup oauth
             OAuthConsumer consumer = new CommonsHttpOAuthConsumer(consumerKey, consumerSecret);
@@ -194,7 +202,7 @@ public class ValidateAndPushServlet extends HttpServlet {
                 connection.setDoOutput(true);
                 connection.setRequestMethod("POST");
                 connection.addRequestProperty("Content-Type", "application/json");
-                connection.addRequestProperty("X-Jive-App-Id", appID);
+                connection.addRequestProperty("X-Jive-App-Id", appId);
                 connection.addRequestProperty("Authorization", post.getFirstHeader("Authorization").getValue());
                 connection.addRequestProperty("Content-Length", Integer.toString(json.length()));
 
@@ -233,7 +241,7 @@ public class ValidateAndPushServlet extends HttpServlet {
         }
     }
 
-    private String getPostUrl(int type, long uid) {
+    private String getPostUrl(int type, long uid, String jiveId, String appId) {
         String url = GATEWAY_BASE_URL;
         if (type == 0) {
             url += "update";
@@ -242,7 +250,7 @@ public class ValidateAndPushServlet extends HttpServlet {
             url += "updateInbox";
         }
 
-        String gatewayUrl = url + "/" + instanceID + "/" + appID + "/" + uid;
+        String gatewayUrl = url + "/" + jiveId + "/" + appId + "/" + uid;
         logger.info("Posting to :" + gatewayUrl);
         return gatewayUrl;
     }
@@ -262,6 +270,23 @@ public class ValidateAndPushServlet extends HttpServlet {
 
         public String getErrorMessage() {
             return errorMessage;
+        }
+    }
+
+    static class JiveAppPair {
+        private String jiveId, appId;
+
+        public JiveAppPair(String jiveId, String appId) {
+            this.jiveId = jiveId;
+            this.appId = appId;
+        }
+
+        public String getJiveId() {
+            return jiveId;
+        }
+
+        public String getAppId() {
+            return appId;
         }
     }
 }

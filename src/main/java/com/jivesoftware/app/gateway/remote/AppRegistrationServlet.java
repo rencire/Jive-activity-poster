@@ -29,16 +29,12 @@ public class AppRegistrationServlet extends HttpServlet {
             if ("added".equals(eventType)) {
                 logger.info("Received add registration - AppUUID=" + appUUID + ", userID=" + userID + ", " +
                         "instanceUUID=" + instanceUUID);
-                ValidateAndPushServlet.setAppID(appUUID);
-                ValidateAndPushServlet.setUserID(userID);
-                ValidateAndPushServlet.setInstanceID(instanceUUID);
+                ValidateAndPushServlet.add(Long.valueOf(userID), instanceUUID, appUUID);
             }
             else {
                 logger.info("Received app deregistration - AppUUID=" + appUUID + ", userID=" + userID + ", " +
                         "instanceUUID=" + instanceUUID);
-                ValidateAndPushServlet.setAppID(null);
-                ValidateAndPushServlet.setUserID(-1);
-                ValidateAndPushServlet.setInstanceID(null);
+                ValidateAndPushServlet.remove(Long.valueOf(userID), instanceUUID, appUUID);
             }
        }
         catch (Exception e) {
