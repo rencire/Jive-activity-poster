@@ -48,6 +48,12 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.3</version>
+        </dependency>
+
         <!-- servlet -->
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -94,13 +100,6 @@
             <groupId>oauth.signpost</groupId>
             <artifactId>signpost-commonshttp4</artifactId>
             <version>1.2.1.1</version>
-        </dependency>
-
-        <!-- activitystreams rest impl -->
-        <dependency>
-            <groupId>com.jivesoftware.cloud.services</groupId>
-            <artifactId>jive-cloud-services-api</artifactId>
-            <version>0.2.11-SNAPSHOT</version>
         </dependency>
 
         <!-- log4j -->
