@@ -43,6 +43,11 @@ public class AppRegistrationServlet extends HttpServlet {
         }
     }
 
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        doGet(req, resp);
+    }
+
     private String validate(String str, String errorMsg) {
         if (StringUtils.isBlank(str)) {
             throw new IllegalArgumentException(errorMsg);

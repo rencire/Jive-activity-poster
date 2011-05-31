@@ -45,8 +45,8 @@ public class ValidateAndPushServlet extends HttpServlet {
     // GAE says Google App Engine does not support reverse-lookup of an IP address by host name: gateway.jivesoftware.com
     // private static final String GATEWAY_BASE_URL = "http://gateway.jivesoftware.com/gateway/api/activity/v1/";
 
-    // Use EC2 hostname directly to post to gateway
-    private static final String GATEWAY_BASE_URL = "http://174.129.24.0/gateway/api/activity/v1/";
+    // Use IP address of gateway to post to it
+    private static final String GATEWAY_BASE_URL = "http://209.46.55.9/gateway/api/activity/v1/";
 
     private static final String ERROR_HEADER = "X-Error-Message";
 

@@ -54,7 +54,7 @@
                     type: "POST",
                     url: "activity",
                     data: dataString,
-                    success: function(data, textStatus, xhr) {
+                    success: function(xhr) {
                         $('#messageDiv').html("Form submitted successfully")
                                 .append(" (").append(xhr.status).append(")")
                                 .fadeIn(1500, function() {

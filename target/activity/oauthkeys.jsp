@@ -11,6 +11,8 @@
                 url: "/oauthkeys",
                 success: function(data, textStatus, jqXHR) {
                     console.info(data);
+                    $("input#consumerKey").val(data['consumerKey']);
+                    $("input#consumerSecret").val(data['consumerSecret']);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     console.log(jqXHR.status);
@@ -35,27 +37,17 @@
                     $("input#consumerSecret").focus();
                     return false;
                 }
-                var json = $("textarea#json").val();
-                if (json == "") {
-                    $("#messageDiv").html("You must provide the activity stream json to continue").show();
-                    $("textarea#json").focus();
-                    return false;
-                }
 
-                var dataString = 'consumerKey='+ encodeURIComponent(consumerKey)
-                        + '&consumerSecret=' + encodeURIComponent(consumerSecret)
-                        + '&targetType=' + encodeURIComponent($("select#targetType").val())
-                        + '&uid=' + <%=request.getParameter("uid")%>
-                        + '&json=' + encodeURIComponent(json);
+                var dataString = 'consumerKey='+ encodeURIComponent(consumerKey) + '&consumerSecret=' + encodeURIComponent(consumerSecret);
 
                 $("#messageDiv").html("Processing ....").show();
 
                 $.ajax({
                     type: "POST",
-                    url: "activity",
+                    url: "oauthkeys",
                     data: dataString,
-                    success: function(data, textStatus, xhr) {
-                        $('#messageDiv').html("Form submitted successfully")
+                    success: function(xhr) {
+                        $('#messageDiv').html("Keys successfully saved.")
                                 .append(" (").append(xhr.status).append(")")
                                 .fadeIn(1500, function() {
                             $('#message');
@@ -85,9 +77,8 @@
         <div id="content">
             <div class="section">
                 <p>
-                    Use the form below to enter an activity stream to be pushed to the app sandbox server. For examples of the
-                    activity stream format make sure to read the
-                    <a href="http://developers.jivesoftware.com/community/docs/DOC-1115">tutorial</a>
+                    Use the form below to provide the OAuth keys to be used for validating lifecycle events sent from
+                    the app and to sign activity requests posted to Jive application gateway.
                 </p>
 
                 <div id="jsonDiv">
@@ -102,30 +93,8 @@
                                     <td><label for="consumerSecret" id="consumerSecretLabel">Consumer Secret:</label></td>
                                     <td><input type="text" size="40" name="consumerSecret" id="consumerSecret" value=""/></td>
                                 </tr>
-                                <tr>
-                                    <td><label for="targetType" id="targetTypeLabel">Target for activity stream:</label></td>
-                                    <td><select name="targetType" id="targetType">
-                                        <option value="0">Normal activity (Default)</option>
-                                        <option value="1">Inbox activity</option>
-                                    </select></td>
-                                </tr>
-                                <tr>
-                                    <td><label for="json" id="jsonLabel">Activity Stream JSON:</label></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2">
-                                        <textarea name="json" id="json" rows="25" cols="70">
-{
-    "items":
-    [{
-        "title" : "Demonstrates posting activities from an external server.",
-        "body" : "Install this app http://apphosting.jivesoftware.com/apps/jiveactivity/app.xml in app sandbox. More info here: https://developers.jivesoftware.com/community/docs/DOC-1119"
-     }]
-}
-                                    </textarea></td>
-                                </tr>
                                 <tr><td>
-                                    <input type="submit" value="Continue" class="button" id="submitBtn"></td>
+                                    <input type="submit" value="Use these OAuth keys" class="button" id="submitBtn"></td>
                                 </tr>
                                 <tr><td colspan="2"><i id="messageDiv"></i></td></tr>
                             </tbody>
